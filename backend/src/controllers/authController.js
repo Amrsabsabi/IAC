@@ -1,122 +1,43 @@
-// export const register = async (req, res) => {
-//   try {
-//     const { email, password, name } = req.body;
+const getOrCreateProfile = async (supabase, user, name = "") => {
+  // 1) دور حسب user id
+  const { data: existingById } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
 
-//     if (!email || !password || !name) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Name, email, and password are required",
-//       });
-//     }
+  if (existingById) return existingById;
 
-//     const { data, error } = await req.supabase.auth.admin.createUser({
-//       email,
-//       password,
-//       email_confirm: true,
-//       user_metadata: {
-//         name,
-//         role: "user",
-//       },
-//     });
+  // 2) دور حسب email لتجنب duplicate email
+  const { data: existingByEmail } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("email", user.email)
+    .maybeSingle();
 
-//     if (error) {
-//       return res.status(400).json({
-//         success: false,
-//         message: error.message,
-//       });
-//     }
+  if (existingByEmail) return existingByEmail;
 
-//     return res.status(201).json({
-//       success: true,
-//       message: "User registered successfully",
-//       user: data.user,
-//     });
-//   } catch (error) {
-//     return res.status(500).json({
-//       success: false,
-//       message: "Server error",
-//     });
-//   }
-// };
+  // 3) إذا مو موجود، أنشئ profile جديد
+  const profileName =
+    name || user.user_metadata?.name || user.email?.split("@")[0] || "User";
 
-// export const login = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
+  const { data: newProfile, error } = await supabase
+    .from("profiles")
+    .insert([
+      {
+        id: user.id,
+        name: profileName,
+        email: user.email,
+        role: "user",
+      },
+    ])
+    .select()
+    .single();
 
-//     if (!email || !password) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Email and password are required",
-//       });
-//     }
+  if (error) throw new Error(error.message);
 
-//     const { data, error } = await req.supabase.auth.signInWithPassword({
-//       email,
-//       password,
-//     });
-
-//     if (error) {
-//       return res.status(401).json({
-//         success: false,
-//         message: error.message,
-//       });
-//     }
-
-//     return res.json({
-//       success: true,
-//       message: "Login successful",
-//       user: data.user,
-//       session: data.session,
-//       access_token: data.session.access_token,
-//     });
-//   } catch (error) {
-//     return res.status(500).json({
-//       success: false,
-//       message: "Server error",
-//     });
-//   }
-// };
-
-
-// export const makeAdmin = async (req, res) => {
-//   try {
-//     const { userId } = req.body;
-
-//     if (!userId) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "userId is required",
-//       });
-//     }
-
-//     const { data, error } = await req.supabase.auth.admin.updateUserById(
-//       userId,
-//       {
-//         user_metadata: {
-//           role: "admin",
-//         },
-//       }
-//     );
-
-//     if (error) {
-//       return res.status(400).json({
-//         success: false,
-//         message: error.message,
-//       });
-//     }
-
-//     res.json({
-//       success: true,
-//       message: "User is now admin",
-//       user: data.user,
-//     });
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: "Server error",
-//     });
-//   }
-// };
+  return newProfile;
+};
 
 export const register = async (req, res) => {
   try {
@@ -129,17 +50,14 @@ export const register = async (req, res) => {
       });
     }
 
-    const { data, error } = await req.supabase.auth.admin.createUser({
+    const { data, error } = await req.supabase.auth.signUp({
       email,
       password,
-
-      // حالياً للتجريب نخليه true
-      // لاحقاً إذا بدك email verification حقيقي منخليها false أو منستخدم signUp
-      email_confirm: true,
-
-      user_metadata: {
-        name,
-        role: "user",
+      options: {
+        data: {
+          name,
+          role: "user",
+        },
       },
     });
 
@@ -152,34 +70,104 @@ export const register = async (req, res) => {
 
     const user = data.user;
 
-    const { error: profileError } = await req.supabase
-      .from("profiles")
-      .insert([
-        {
-          id: user.id,
-          name,
-          email,
-          role: "user",
-        },
-      ]);
-
-    if (profileError) {
+    if (!user) {
       return res.status(400).json({
         success: false,
-        message: profileError.message,
+        message: "Registration failed",
       });
     }
 
+    const profile = await getOrCreateProfile(req.supabase, user, name);
+
     return res.status(201).json({
       success: true,
-      message: "User registered successfully",
+      message:
+        "Account created successfully. Please check your email for the verification code.",
       user,
-      profile: {
-        id: user.id,
-        name,
-        email,
-        role: "user",
+      profile,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error",
+    });
+  }
+};
+
+export const sendOtp = async (req, res) => {
+  try {
+    const { email, name } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    const { error } = await req.supabase.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+        data: {
+          name: name || email.split("@")[0],
+          role: "user",
+        },
       },
+    });
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Verification code sent to your email.",
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error",
+    });
+  }
+};
+
+export const verifyOtp = async (req, res) => {
+  try {
+    const { email, token, name } = req.body;
+
+    if (!email || !token) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and verification code are required",
+      });
+    }
+
+    const { data, error } = await req.supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "email",
+    });
+
+    if (error) {
+      return res.status(401).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    const profile = await getOrCreateProfile(req.supabase, data.user, name);
+
+    return res.json({
+      success: true,
+      message: "Email verified successfully",
+      user: data.user,
+      profile,
+      session: data.session,
+      access_token: data.session.access_token,
     });
   } catch (error) {
     return res.status(500).json({
@@ -212,18 +200,14 @@ export const login = async (req, res) => {
       });
     }
 
-    const { data: profile, error: profileError } = await req.supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", data.user.id)
-      .single();
-
-    if (profileError) {
-      return res.status(404).json({
+    if (!data.user.email_confirmed_at) {
+      return res.status(403).json({
         success: false,
-        message: "Profile not found",
+        message: "Please verify your email before logging in.",
       });
     }
+
+    const profile = await getOrCreateProfile(req.supabase, data.user);
 
     return res.json({
       success: true,
