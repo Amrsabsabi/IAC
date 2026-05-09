@@ -29,6 +29,10 @@ export default function EditCampaign() {
     location_en: "",
   });
 
+  const [heroImageFile, setHeroImageFile] = useState(null);
+  const [galleryFiles, setGalleryFiles] = useState([]);
+  const [currentGallery, setCurrentGallery] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -60,6 +64,8 @@ export default function EditCampaign() {
           location_ar: campaign.location_ar || "",
           location_en: campaign.location_en || "",
         });
+
+        setCurrentGallery(campaign.gallery || []);
       } catch (error) {
         alert(error.response?.data?.message || "Campaign not found");
         navigate("/admin/campaigns");
@@ -83,10 +89,27 @@ export default function EditCampaign() {
     setSaving(true);
 
     try {
-      await api.put(`/admin/campaigns/${slug}`, {
-        ...form,
-        target_amount: Number(form.target_amount),
-        raised_amount: Number(form.raised_amount),
+      const formData = new FormData();
+
+      Object.entries(form).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+
+      formData.set("target_amount", Number(form.target_amount));
+      formData.set("raised_amount", Number(form.raised_amount));
+
+      if (heroImageFile) {
+        formData.append("hero_image_file", heroImageFile);
+      }
+
+      galleryFiles.forEach((file) => {
+        formData.append("gallery_images", file);
+      });
+
+      await api.put(`/admin/campaigns/${slug}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       navigate("/admin/campaigns");
@@ -116,7 +139,13 @@ export default function EditCampaign() {
         </h1>
 
         <div className="grid gap-5 md:grid-cols-2">
-          <Input label="Slug" name="slug" value={form.slug} onChange={handleChange} required />
+          <Input
+            label="Slug"
+            name="slug"
+            value={form.slug}
+            onChange={handleChange}
+            required
+          />
 
           <div>
             <label className="mb-2 block font-bold">Type</label>
@@ -132,10 +161,91 @@ export default function EditCampaign() {
             </select>
           </div>
 
-          <Input label="Title AR" name="title_ar" value={form.title_ar} onChange={handleChange} required />
-          <Input label="Title EN" name="title_en" value={form.title_en} onChange={handleChange} required />
+          <Input
+            label="Title AR"
+            name="title_ar"
+            value={form.title_ar}
+            onChange={handleChange}
+            required
+          />
 
-          <Input label="Hero Image URL" name="hero_image" value={form.hero_image} onChange={handleChange} />
+          <Input
+            label="Title EN"
+            name="title_en"
+            value={form.title_en}
+            onChange={handleChange}
+            required
+          />
+
+          <div className="md:col-span-2">
+            <label className="mb-2 block font-bold">Current Hero Image</label>
+
+            {form.hero_image ? (
+              <img
+                src={form.hero_image}
+                alt="Current hero"
+                className="mb-3 h-48 w-full rounded-xl object-cover"
+              />
+            ) : (
+              <p className="mb-3 text-sm text-gray-500">No hero image</p>
+            )}
+
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setHeroImageFile(e.target.files[0])}
+              className="w-full rounded-xl border px-4 py-3"
+            />
+
+            {heroImageFile && (
+              <p className="mt-2 text-sm text-[#155541]">
+                New selected: {heroImageFile.name}
+              </p>
+            )}
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="mb-2 block font-bold">Current Gallery</label>
+
+            {currentGallery.length > 0 ? (
+              <div className="mb-4 grid gap-4 md:grid-cols-3">
+                {currentGallery.map((img) => (
+                  <img
+                    key={img.id}
+                    src={img.image_url}
+                    alt=""
+                    className="h-36 w-full rounded-xl object-cover"
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="mb-3 text-sm text-gray-500">No gallery images</p>
+            )}
+
+            <label className="mb-2 block font-bold">
+              Replace Gallery Images max 3
+            </label>
+
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(e) =>
+                setGalleryFiles(Array.from(e.target.files).slice(0, 3))
+              }
+              className="w-full rounded-xl border px-4 py-3"
+            />
+
+            {galleryFiles.length > 0 && (
+              <div className="mt-3 grid gap-2 text-sm text-[#155541]">
+                {galleryFiles.map((file, index) => (
+                  <p key={index}>
+                    {index + 1}. {file.name}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
 
           <div>
             <label className="mb-2 block font-bold">Currency</label>
@@ -169,21 +279,89 @@ export default function EditCampaign() {
             onChange={handleChange}
           />
 
-          <Textarea label="Description AR" name="description_ar" value={form.description_ar} onChange={handleChange} />
-          <Textarea label="Description EN" name="description_en" value={form.description_en} onChange={handleChange} />
+          <Textarea
+            label="Description AR"
+            name="description_ar"
+            value={form.description_ar}
+            onChange={handleChange}
+          />
 
-          <Input label="Start Date AR" name="start_date_ar" value={form.start_date_ar} onChange={handleChange} />
-          <Input label="Start Date EN" name="start_date_en" value={form.start_date_en} onChange={handleChange} />
-          <Input label="End Date AR" name="end_date_ar" value={form.end_date_ar} onChange={handleChange} />
-          <Input label="End Date EN" name="end_date_en" value={form.end_date_en} onChange={handleChange} />
+          <Textarea
+            label="Description EN"
+            name="description_en"
+            value={form.description_en}
+            onChange={handleChange}
+          />
 
-          <Input label="Beneficiaries AR" name="beneficiaries_ar" value={form.beneficiaries_ar} onChange={handleChange} />
-          <Input label="Beneficiaries EN" name="beneficiaries_en" value={form.beneficiaries_en} onChange={handleChange} />
-          <Input label="Beneficiaries Number AR" name="beneficiaries_number_ar" value={form.beneficiaries_number_ar} onChange={handleChange} />
-          <Input label="Beneficiaries Number EN" name="beneficiaries_number_en" value={form.beneficiaries_number_en} onChange={handleChange} />
+          <Input
+            label="Start Date AR"
+            name="start_date_ar"
+            value={form.start_date_ar}
+            onChange={handleChange}
+          />
 
-          <Input label="Location AR" name="location_ar" value={form.location_ar} onChange={handleChange} />
-          <Input label="Location EN" name="location_en" value={form.location_en} onChange={handleChange} />
+          <Input
+            label="Start Date EN"
+            name="start_date_en"
+            value={form.start_date_en}
+            onChange={handleChange}
+          />
+
+          <Input
+            label="End Date AR"
+            name="end_date_ar"
+            value={form.end_date_ar}
+            onChange={handleChange}
+          />
+
+          <Input
+            label="End Date EN"
+            name="end_date_en"
+            value={form.end_date_en}
+            onChange={handleChange}
+          />
+
+          <Input
+            label="Beneficiaries AR"
+            name="beneficiaries_ar"
+            value={form.beneficiaries_ar}
+            onChange={handleChange}
+          />
+
+          <Input
+            label="Beneficiaries EN"
+            name="beneficiaries_en"
+            value={form.beneficiaries_en}
+            onChange={handleChange}
+          />
+
+          <Input
+            label="Beneficiaries Number AR"
+            name="beneficiaries_number_ar"
+            value={form.beneficiaries_number_ar}
+            onChange={handleChange}
+          />
+
+          <Input
+            label="Beneficiaries Number EN"
+            name="beneficiaries_number_en"
+            value={form.beneficiaries_number_en}
+            onChange={handleChange}
+          />
+
+          <Input
+            label="Location AR"
+            name="location_ar"
+            value={form.location_ar}
+            onChange={handleChange}
+          />
+
+          <Input
+            label="Location EN"
+            name="location_en"
+            value={form.location_en}
+            onChange={handleChange}
+          />
         </div>
 
         <div className="mt-8 flex gap-3">
@@ -220,7 +398,11 @@ function Textarea({ label, ...props }) {
   return (
     <div className="md:col-span-2">
       <label className="mb-2 block font-bold">{label}</label>
-      <textarea rows="4" className="w-full rounded-xl border px-4 py-3" {...props} />
+      <textarea
+        rows="4"
+        className="w-full rounded-xl border px-4 py-3"
+        {...props}
+      />
     </div>
   );
 }

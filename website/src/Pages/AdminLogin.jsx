@@ -20,16 +20,32 @@ export default function AdminLogin() {
     }));
   };
 
+  const clearAdminStorage = () => {
+    localStorage.removeItem("admin_token");
+    localStorage.removeItem("admin_user");
+    localStorage.removeItem("admin_profile");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
     try {
+      clearAdminStorage();
+
       const res = await api.post("/auth/login", form);
+
+      const profile = res.data.profile;
+
+      if (profile?.role !== "admin") {
+        setError("Access denied. Admins only.");
+        return;
+      }
 
       localStorage.setItem("admin_token", res.data.access_token);
       localStorage.setItem("admin_user", JSON.stringify(res.data.user));
+      localStorage.setItem("admin_profile", JSON.stringify(profile));
 
       navigate("/admin/campaigns");
     } catch (err) {
@@ -68,7 +84,9 @@ export default function AdminLogin() {
         </div>
 
         <div className="mb-7">
-          <label className="mb-2 block font-bold text-[#3C3C3C]">Password</label>
+          <label className="mb-2 block font-bold text-[#3C3C3C]">
+            Password
+          </label>
           <input
             name="password"
             type="password"
