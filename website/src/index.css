@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Exo:wght@300;400;500;600;700;800;900&display=swap");
 
-
 html[lang="ar"],
 html[lang="ar"] body {
   font-family: "Cairo", sans-serif;
@@ -12,50 +11,12 @@ html[lang="en"] body {
   font-family: "Exo", sans-serif;
 }
 
-
-@keyframes fadeTeam {
-  from {
-    opacity: 0;
-    transform: translateY(18px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-
-@keyframes heroFade {
-  from {
-    opacity: 0;
-    transform: translateY(24px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fadeSlider {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-
-
 .container {
-  width: min(1100px);  /* صغّرنا العرض */
+  width: min(1100px, calc(100% - 32px));
   margin: 0 auto;
 }
 
-
-
+/* Contact Page */
 .contactHero {
   position: relative;
   min-height: 300px;
@@ -120,6 +81,7 @@ html[lang="en"] body {
 .formGroup input,
 .formGroup textarea {
   width: 100%;
+  box-sizing: border-box;
   border: 1px solid #cfcfcf;
   border-radius: 8px;
   padding: 10px 12px;
@@ -129,7 +91,7 @@ html[lang="en"] body {
 }
 
 .formGroup input {
-  height: 34px;
+  height: 44px;
 }
 
 .formGroup textarea {
@@ -187,35 +149,46 @@ html[lang="en"] body {
 
 .contactInfo img {
   display: block;
-  width: 55%;
-  max-width: 300px;
-  margin: 30px auto 0;
-  padding-top: 28px;
+  width: 150px;
+  max-width: 45%;
+  height: auto;
+  object-fit: contain;
+  margin: 28px auto 0;
+  padding-top: 24px;
   border-top: 1px solid #ddd;
 }
 
-@media (max-width: 900px) {
-  .contactGrid {
-    grid-template-columns: 1fr;
-    gap: 40px;
+/* Animations */
+@keyframes fadeTeam {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
   }
-
-  .contactHeroContent h1 {
-    font-size: 46px;
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
-@media (max-width: 560px) {
-  .formGrid {
-    grid-template-columns: 1fr;
+@keyframes heroFade {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
   }
-
-  .contactSection {
-    padding: 40px 0;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
+}
 
-  .contactInfo {
-    padding: 28px;
+@keyframes fadeSlider {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -248,4 +221,94 @@ html[lang="en"] body {
 
 .animate-fadeInText {
   animation: fadeInSlow 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .contactGrid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .contactInfo {
+    margin-top: 0;
+  }
+
+  .contactHeroContent h1 {
+    font-size: 46px;
+  }
+}
+
+@media (max-width: 560px) {
+  .container {
+    width: min(100% - 24px, 1100px);
+  }
+
+  .contactHero {
+    min-height: 300px;
+  }
+
+  .contactHeroContent h1 {
+    font-size: 38px;
+  }
+
+  .contactSection {
+    padding: 40px 0;
+  }
+
+  .leadText {
+    font-size: 16px;
+    line-height: 1.8;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .formGroup label {
+    font-size: 15px;
+  }
+
+  .formGroup input,
+  .formGroup textarea {
+    font-size: 16px;
+  }
+
+  .contactInfo {
+    margin-top: 0;
+    padding: 24px 18px;
+    text-align: center;
+    overflow: hidden;
+  }
+
+  .contactInfo ul {
+    padding: 0;
+    margin: 0 0 24px;
+  }
+
+  .contactInfo li {
+    word-break: break-word;
+    text-align: center;
+  }
+
+  .contactInfo img {
+    width: 130px;
+    max-width: 55%;
+    margin: 24px auto 0;
+    padding-top: 20px;
+    object-fit: contain;
+  }
+
+  .submitRow {
+    text-align: center;
+  }
+
+  .submitRow button {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 16px;
+  }
 }

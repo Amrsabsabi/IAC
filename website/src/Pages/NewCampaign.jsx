@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import { useAppAuth } from "../context/AuthContext";
 
 export default function NewCampaign() {
   const navigate = useNavigate();
+  const { getToken } = useAppAuth();
 
   const [form, setForm] = useState({
     slug: "",
@@ -43,6 +45,8 @@ export default function NewCampaign() {
     setLoading(true);
 
     try {
+      const token = await getToken();
+
       const formData = new FormData();
 
       Object.entries(form).forEach(([key, value]) => {
@@ -62,6 +66,7 @@ export default function NewCampaign() {
 
       await api.post("/admin/campaigns", formData, {
         headers: {
+          Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
@@ -154,9 +159,7 @@ export default function NewCampaign() {
           </div>
 
           <div className="md:col-span-2">
-            <label className="mb-2 block font-bold">
-              Gallery Images max 3
-            </label>
+            <label className="mb-2 block font-bold">Gallery Images max 3</label>
             <input
               type="file"
               accept="image/*"

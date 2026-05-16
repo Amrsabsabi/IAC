@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../services/api";
+import { useAppAuth } from "../context/AuthContext";
 
 export default function EditCampaign() {
   const navigate = useNavigate();
   const { slug } = useParams();
+  const { getToken } = useAppAuth();
 
   const [form, setForm] = useState({
     slug: "",
@@ -89,6 +91,8 @@ export default function EditCampaign() {
     setSaving(true);
 
     try {
+      const token = await getToken();
+
       const formData = new FormData();
 
       Object.entries(form).forEach(([key, value]) => {
@@ -108,6 +112,7 @@ export default function EditCampaign() {
 
       await api.put(`/admin/campaigns/${slug}`, formData, {
         headers: {
+          Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });

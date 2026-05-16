@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { SignIn, SignUp } from "@clerk/clerk-react";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -12,15 +13,18 @@ import ContactUs from "./Pages/ContactUs";
 import AboutUs from "./Pages/AboutUs";
 
 import AdminLogin from "./Pages/AdminLogin";
+import AdminDashboard from "./Pages/AdminDashboard";
 import AdminCampaigns from "./Pages/AdminCampaigns";
 import NewCampaign from "./Pages/NewCampaign";
 import EditCampaign from "./Pages/EditCampaign";
+import AdminHomeContent from "./Pages/AdminHomeContent";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 
-import UserLogin from "./Pages/UserLogin";
-import UserRegister from "./Pages/UserRegister";
-import UserDashboard from "./Pages/UserDashboard";
 import ProtectedUserRoute from "./components/ProtectedUserRoute";
+import DonorDashboard from "./Pages/DonorDashboard";
+import Donate from "./Pages/Donate";
+import Profile from "./Pages/Profile";
+import AuthRedirect from "./Pages/AuthRedirect";
 
 export default function App() {
   return (
@@ -28,8 +32,17 @@ export default function App() {
       <ScrollToTop />
 
       <Routes>
-        {/* Admin */}
+        {/* Admin Clerk Auth */}
         <Route path="/admin/login" element={<AdminLogin />} />
+
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedAdminRoute>
+              <AdminDashboard />
+            </ProtectedAdminRoute>
+          }
+        />
 
         <Route
           path="/admin/campaigns"
@@ -58,7 +71,16 @@ export default function App() {
           }
         />
 
-        {/* Website pages with Header/Footer */}
+        <Route
+          path="/admin/home-content"
+          element={
+            <ProtectedAdminRoute>
+              <AdminHomeContent />
+            </ProtectedAdminRoute>
+          }
+        />
+
+        {/* Website */}
         <Route
           path="*"
           element={
@@ -73,15 +95,61 @@ export default function App() {
                 <Route path="/about-us" element={<AboutUs />} />
                 <Route path="/contact-us" element={<ContactUs />} />
 
-                {/* User Auth */}
-                <Route path="/login" element={<UserLogin />} />
-                <Route path="/register" element={<UserRegister />} />
+                <Route path="/auth-redirect" element={<AuthRedirect />} />
 
                 <Route
-                  path="/user/dashboard"
+                  path="/login/*"
+                  element={
+                    <main className="flex min-h-screen items-center justify-center bg-[#F4F7F6] px-4 py-10">
+                      <SignIn
+                        routing="path"
+                        path="/login"
+                        signUpUrl="/register"
+                        fallbackRedirectUrl="/auth-redirect"
+                        forceRedirectUrl="/auth-redirect"
+                      />
+                    </main>
+                  }
+                />
+
+                <Route
+                  path="/register/*"
+                  element={
+                    <main className="flex min-h-screen items-center justify-center bg-[#F4F7F6] px-4 py-10">
+                      <SignUp
+                        routing="path"
+                        path="/register"
+                        signInUrl="/login"
+                        fallbackRedirectUrl="/auth-redirect"
+                        forceRedirectUrl="/auth-redirect"
+                      />
+                    </main>
+                  }
+                />
+
+                <Route
+                  path="/donor"
                   element={
                     <ProtectedUserRoute>
-                      <UserDashboard />
+                      <DonorDashboard />
+                    </ProtectedUserRoute>
+                  }
+                />
+
+                <Route
+                  path="/donate"
+                  element={
+                    <ProtectedUserRoute>
+                      <Donate />
+                    </ProtectedUserRoute>
+                  }
+                />
+
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedUserRoute>
+                      <Profile />
                     </ProtectedUserRoute>
                   }
                 />

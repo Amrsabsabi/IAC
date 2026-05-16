@@ -1,11 +1,32 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AnimatedCounter from "../components/AnimatedCounter";
+import api from "../services/api";
 
 export default function Home() {
   const [teamIndex, setTeamIndex] = useState(0);
+  const [siteContent, setSiteContent] = useState({});
+  const [siteLoading, setSiteLoading] = useState(true);
+
   const { t, i18n } = useTranslation();
   const isArabic = i18n.language === "ar";
+
+  useEffect(() => {
+    const getSiteContent = async () => {
+      try {
+        const res = await api.get("/site-content");
+        setSiteContent(res.data.content || {});
+      } catch (error) {
+        console.log(error);
+      } finally {
+        setSiteLoading(false);
+      }
+    };
+
+    getSiteContent();
+  }, []);
+
+  const heroImage = siteContent.home_hero_image || "/Home/Hero.jpeg";
 
   const cards = [
     { title: t("home.cards.orphans.title"), text: t("home.cards.orphans.text"), image: "/Home/child.jpg" },
@@ -32,7 +53,6 @@ export default function Home() {
     { label: t("home.stats.adahi"), value: 36000 },
   ];
 
-
   const team = [
     { name: t("home.teamNames.omari"), role: t("home.team.omari"), image: "/team_member/mutasem.jpeg" },
     { name: t("home.teamNames.mutasem"), role: t("home.team.mutasem"), image: "/team_member/mutasem.jpeg" },
@@ -43,6 +63,7 @@ export default function Home() {
     { name: t("home.teamNames.bayan"), role: t("home.team.bayan"), image: "/team_member/bayan.jpeg" },
     { name: t("home.teamNames.haya"), role: t("home.team.haya"), image: "/team_member/haya.jpeg" },
   ];
+
   const nextTeam = () => {
     setTeamIndex((prev) => (prev + 1 >= team.length ? 0 : prev + 1));
   };
@@ -51,35 +72,33 @@ export default function Home() {
     setTeamIndex((prev) => (prev - 1 < 0 ? team.length - 1 : prev - 1));
   };
 
-
-
   return (
     <main>
-
-      <section className="relative flex min-h-[calc(100vh-80px)] items-center justify-center text-center text-white overflow-hidden">
-
+      <section className="relative flex min-h-[calc(100vh-80px)] items-center justify-center overflow-hidden bg-[#155541] text-center text-white">
         <div
-          className="absolute inset-0 bg-cover bg-center animate-bg-zoom"
-          style={{ backgroundImage: "url('/Home/Hero.jpeg')" }}
+          className={`absolute inset-0 bg-cover bg-center transition-opacity duration-300 ${
+            siteLoading ? "opacity-0" : "opacity-100 animate-bg-zoom"
+          }`}
+          style={{ backgroundImage: `url('${heroImage}')` }}
         />
 
         <div className="absolute inset-0 bg-black/50" />
 
-        <div className="relative z-10 max-w-5xl px-4 animate-[heroFade_.9s_ease-out]">
+        <div
+          className={`relative z-10 max-w-5xl px-4 transition-opacity duration-300 ${
+            siteLoading ? "opacity-0" : "opacity-100 animate-[heroFade_.9s_ease-out]"
+          }`}
+        >
           <h1 className="mb-6 text-4xl font-extrabold leading-tight md:text-7xl">
-            {t("home.title")}
+            {isArabic
+              ? siteContent.home_hero_title_ar || t("home.title")
+              : siteContent.home_hero_title_en || t("home.title")}
           </h1>
 
-          <p className="mb-2 text-xl font-medium md:text-3xl">
-            {t("home.subtitle1")}
-          </p>
-
-          <p className="mb-2 text-xl font-medium md:text-3xl">
-            {t("home.subtitle2")}
-          </p>
-
           <p className="mb-8 text-xl font-medium md:text-3xl">
-            {t("home.subtitle3")}
+            {isArabic
+              ? siteContent.home_hero_desc_ar || t("home.subtitle1")
+              : siteContent.home_hero_desc_en || t("home.subtitle1")}
           </p>
 
           <a
@@ -116,21 +135,19 @@ export default function Home() {
           </div>
         </div>
       </section>
+
       <section className="bg-white px-4 py-20">
         <div className="mx-auto max-w-6xl text-center">
-
           <p className="mb-12 font-bold text-[#3C3C3C]">
             {t("home.stepsTitle")}
           </p>
 
           <div className="relative">
-
-            <div className="hidden md:block absolute top-8 inset-x-[12%] h-[2px] bg-gray-300 z-0"></div>
+            <div className="absolute inset-x-[12%] top-8 z-0 hidden h-[2px] bg-gray-300 md:block"></div>
 
             <div className="relative z-10 grid gap-10 md:grid-cols-4">
               {steps.map((step) => (
                 <div key={step.number} className="text-center">
-
                   <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[#155541] text-2xl font-bold text-white">
                     {step.number}
                   </div>
@@ -142,15 +159,13 @@ export default function Home() {
                   <p className="mx-auto max-w-xs leading-7 text-[#5A4B3C]">
                     {step.text}
                   </p>
-
                 </div>
               ))}
             </div>
-
           </div>
-
         </div>
       </section>
+
       <section className="bg-gradient-to-r from-[#155541] to-[#5A4B3C] px-4 py-24">
         <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
           <div className="rounded-xl bg-white p-8 shadow-xl">
@@ -169,8 +184,6 @@ export default function Home() {
       <section className="bg-white px-4 py-20 text-center">
         <h2 className="mb-12 text-2xl font-bold text-[#3C3C3C]">{t("home.galleryTitle")}</h2>
 
-
-
         <div className="mx-auto grid max-w-7xl gap-5 md:grid-cols-3">
           {["/Home/box_cam.jpg", "/Home/sponge.jpg", "/Home/kid_box.JPG", "/Home/smily_kid.jpg", "/Home/boxes.jpg"].map(
             (img, index) => (
@@ -178,10 +191,9 @@ export default function Home() {
                 key={index}
                 src={img}
                 alt=""
-                className={`w-full rounded-xl object-cover shadow-md ${index === 1
-                  ? "md:row-span-2 h-[540px]"
-                  : "h-64"
-                  }`}
+                className={`w-full rounded-xl object-cover shadow-md ${
+                  index === 1 ? "h-[540px] md:row-span-2" : "h-64"
+                }`}
               />
             )
           )}
@@ -218,8 +230,6 @@ export default function Home() {
           </h2>
 
           <div className="relative min-h-[620px]">
-
-
             <button
               onClick={prevTeam}
               className="absolute left-4 top-1/2 z-20 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[#155541] shadow-lg ring-1 ring-black/10 transition hover:bg-[#155541] hover:text-white"
@@ -239,6 +249,7 @@ export default function Home() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
+
             <div key={teamIndex} className="animate-[fadeTeam_.45s_ease] px-16">
               <img
                 src={team[teamIndex].image}
@@ -260,8 +271,9 @@ export default function Home() {
                 <button
                   key={index}
                   onClick={() => setTeamIndex(index)}
-                  className={`h-3 w-3 rounded-full transition ${index === teamIndex ? "scale-125 bg-black" : "bg-[#858989]"
-                    }`}
+                  className={`h-3 w-3 rounded-full transition ${
+                    index === teamIndex ? "scale-125 bg-black" : "bg-[#858989]"
+                  }`}
                   aria-label={`Go to member ${index + 1}`}
                 />
               ))}

@@ -5,7 +5,7 @@ import { campaignsData } from "../data/campaignsData";
 import api from "../services/api";
 
 export default function CampaignDetail() {
-  const { id } = useParams();
+  const { id: slug } = useParams();
   const { i18n } = useTranslation();
   const lang = i18n.language === "ar" ? "ar" : "en";
 
@@ -21,13 +21,16 @@ export default function CampaignDetail() {
   useEffect(() => {
     const loadCampaign = async () => {
       setLoading(true);
+      setGalleryIndex(0);
 
-      const staticCampaign = campaignsData.find((item) => item.id === id);
+      const staticCampaign = campaignsData.find(
+        (item) => item.id === slug || item.slug === slug
+      );
 
       if (staticCampaign) {
         setCampaign({
-          title: staticCampaign.title?.[lang],
-          description: staticCampaign.description?.[lang],
+          title: getValue(staticCampaign.title),
+          description: getValue(staticCampaign.description),
           heroImage: staticCampaign.heroImage,
           progress: staticCampaign.progress || 100,
           type: staticCampaign.type || "old",
@@ -47,19 +50,21 @@ export default function CampaignDetail() {
       }
 
       try {
-        const res = await api.get(`/campaigns/${id}`);
+        const res = await api.get(`/campaigns/${slug}`);
         const item = res.data.campaign;
 
         setCampaign({
           title: lang === "ar" ? item.title_ar : item.title_en,
-          description: lang === "ar" ? item.description_ar : item.description_en,
+          description:
+            lang === "ar" ? item.description_ar : item.description_en,
           heroImage: item.hero_image || "/campaigns/ramadan_market.jpeg",
-          progress: item.progress || 0,
+          progress: Number(item.progress || 0),
           type: item.type,
           gallery: item.gallery?.map((img) => img.image_url) || [],
           startDate: lang === "ar" ? item.start_date_ar : item.start_date_en,
           endDate: lang === "ar" ? item.end_date_ar : item.end_date_en,
-          beneficiaries: lang === "ar" ? item.beneficiaries_ar : item.beneficiaries_en,
+          beneficiaries:
+            lang === "ar" ? item.beneficiaries_ar : item.beneficiaries_en,
           beneficiariesNumber:
             lang === "ar"
               ? item.beneficiaries_number_ar
@@ -70,14 +75,15 @@ export default function CampaignDetail() {
           currency: item.currency || "USD",
         });
       } catch (error) {
+        console.log("Campaign detail error:", error.response?.data || error);
         setCampaign(null);
       } finally {
         setLoading(false);
       }
     };
 
-    loadCampaign();
-  }, [id, lang]);
+    if (slug) loadCampaign();
+  }, [slug, lang]);
 
   if (loading) {
     return (
@@ -116,14 +122,26 @@ export default function CampaignDetail() {
       : 0;
 
   const infoItems = [
-    { label: lang === "ar" ? "تاريخ البداية" : "Start Date", value: campaign.startDate },
-    { label: lang === "ar" ? "تاريخ الانتهاء" : "End Date", value: campaign.endDate },
-    { label: lang === "ar" ? "المستفيدين" : "Beneficiaries", value: campaign.beneficiaries },
+    {
+      label: lang === "ar" ? "تاريخ البداية" : "Start Date",
+      value: campaign.startDate,
+    },
+    {
+      label: lang === "ar" ? "تاريخ الانتهاء" : "End Date",
+      value: campaign.endDate,
+    },
+    {
+      label: lang === "ar" ? "المستفيدين" : "Beneficiaries",
+      value: campaign.beneficiaries,
+    },
     {
       label: lang === "ar" ? "عدد المستفيدين" : "Number of Beneficiaries",
       value: campaign.beneficiariesNumber,
     },
-    { label: lang === "ar" ? "المكان" : "Location", value: campaign.location },
+    {
+      label: lang === "ar" ? "المكان" : "Location",
+      value: campaign.location,
+    },
   ].filter((item) => item.value);
 
   return (
@@ -135,8 +153,15 @@ export default function CampaignDetail() {
         <div className="absolute inset-0 bg-black/50" />
 
         <div className="absolute bottom-[-1px] left-0 w-full overflow-hidden leading-none">
-          <svg className="block h-20 w-full" viewBox="0 0 1440 120" preserveAspectRatio="none">
-            <path fill="#ffffff" d="M0,30 C300,100 900,100 1440,40 L1440,120 L0,120 Z" />
+          <svg
+            className="block h-20 w-full"
+            viewBox="0 0 1440 120"
+            preserveAspectRatio="none"
+          >
+            <path
+              fill="#ffffff"
+              d="M0,30 C300,100 900,100 1440,40 L1440,120 L0,120 Z"
+            />
           </svg>
         </div>
       </section>
@@ -156,8 +181,8 @@ export default function CampaignDetail() {
               <>
                 <div className="mb-3 flex justify-between text-[#5A4B3C]">
                   <span>
-                    {lang === "ar" ? "تم جمع" : "Raised"}: {campaign.currency}{" "}
-                    {campaign.raised_amount.toLocaleString()}
+                    {lang === "ar" ? "تم جمع" : "Raised"}:{" "}
+                    {campaign.currency} {campaign.raised_amount.toLocaleString()}
                   </span>
                   <span>
                     {lang === "ar" ? "الهدف" : "Target"}: {campaign.currency}{" "}
@@ -185,7 +210,9 @@ export default function CampaignDetail() {
                 <h3 className="mb-5 text-2xl font-semibold text-[#3C3C3C]">
                   {item.label} :
                 </h3>
-                <p className="text-lg leading-8 text-[#155541]">{item.value}</p>
+                <p className="text-lg leading-8 text-[#155541]">
+                  {item.value}
+                </p>
               </div>
             ))}
           </div>
@@ -195,7 +222,9 @@ export default function CampaignDetail() {
       <section className="px-4 pb-24">
         <div className="mx-auto max-w-5xl">
           <h2 className="mb-10 text-center text-4xl font-bold text-[#3C3C3C]">
-            {lang === "ar" ? "شاهد المزيد حول المشروع :" : "See more about the project:"}
+            {lang === "ar"
+              ? "شاهد المزيد حول المشروع :"
+              : "See more about the project:"}
           </h2>
 
           {gallery.length > 0 ? (
@@ -209,11 +238,17 @@ export default function CampaignDetail() {
 
               <div dir="ltr" className="mt-6 flex items-center justify-between">
                 <div className="flex gap-3">
-                  <button onClick={prevImage} className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#155541] shadow ring-1 ring-black/10 transition hover:bg-[#155541] hover:text-white">
+                  <button
+                    onClick={prevImage}
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#155541] shadow ring-1 ring-black/10 transition hover:bg-[#155541] hover:text-white"
+                  >
                     ‹
                   </button>
 
-                  <button onClick={nextImage} className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#155541] shadow ring-1 ring-black/10 transition hover:bg-[#155541] hover:text-white">
+                  <button
+                    onClick={nextImage}
+                    className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#155541] shadow ring-1 ring-black/10 transition hover:bg-[#155541] hover:text-white"
+                  >
                     ›
                   </button>
                 </div>
@@ -224,7 +259,9 @@ export default function CampaignDetail() {
                       key={index}
                       onClick={() => setGalleryIndex(index)}
                       className={`h-3 w-3 rounded-full transition ${
-                        index === galleryIndex ? "scale-125 bg-black" : "bg-[#858989]"
+                        index === galleryIndex
+                          ? "scale-125 bg-black"
+                          : "bg-[#858989]"
                       }`}
                     />
                   ))}

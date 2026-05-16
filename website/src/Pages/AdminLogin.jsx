@@ -46,8 +46,9 @@ export default function AdminLogin() {
       localStorage.setItem("admin_token", res.data.access_token);
       localStorage.setItem("admin_user", JSON.stringify(res.data.user));
       localStorage.setItem("admin_profile", JSON.stringify(profile));
-
-      navigate("/admin/campaigns");
+      window.dispatchEvent(new Event("authChanged"));
+      
+      navigate("/admin/dashboard");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     } finally {

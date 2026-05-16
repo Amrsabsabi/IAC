@@ -1,6 +1,6 @@
 export const adminOnly = (req, res, next) => {
   try {
-    const role = req.user.user_metadata?.role;
+    const role = req.user?.role;
 
     if (role !== "admin") {
       return res.status(403).json({

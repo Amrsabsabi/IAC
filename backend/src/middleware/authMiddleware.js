@@ -1,31 +1,71 @@
+// import { getAuth, clerkClient } from "@clerk/express";
+
+// export const requireAuth = async (req, res, next) => {
+//   try {
+//     const auth = getAuth(req);
+
+//     if (!auth?.userId) {
+//       return res.status(401).json({
+//         success: false,
+//         message: "Unauthorized. No Clerk session found.",
+//       });
+//     }
+
+//     const user = await clerkClient.users.getUser(auth.userId);
+
+//     const email = user.primaryEmailAddress?.emailAddress || "";
+
+//     req.user = {
+//       id: user.id,
+//       clerk_user_id: user.id,
+//       email,
+//       name:
+//         user.fullName ||
+//         user.username ||
+//         email.split("@")[0] ||
+//         "User",
+//       role: user.publicMetadata?.role || "donor",
+//       clerk: user,
+//     };
+
+//     next();
+//   } catch (error) {
+//     return res.status(401).json({
+//       success: false,
+//       message: error.message || "Auth middleware error",
+//     });
+//   }
+// };
+
+import { getAuth, clerkClient } from "@clerk/express";
+
 export const requireAuth = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
+    const auth = getAuth(req);
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!auth?.userId) {
       return res.status(401).json({
         success: false,
-        message: "No token provided",
+        message: "Unauthorized. No Clerk session found.",
       });
     }
 
-    const token = authHeader.split(" ")[1];
+    const clerkUser = await clerkClient.users.getUser(auth.userId);
+    const email = clerkUser.primaryEmailAddress?.emailAddress || "";
 
-    const { data, error } = await req.supabase.auth.getUser(token);
+    req.user = {
+      id: clerkUser.id,
+      clerk_user_id: clerkUser.id,
+      email,
+      name: clerkUser.fullName || clerkUser.username || email.split("@")[0],
+      role: clerkUser.publicMetadata?.role || "donor",
+    };
 
-    if (error || !data.user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid or expired token",
-      });
-    }
-
-    req.user = data.user;
     next();
   } catch (error) {
-    return res.status(500).json({
+    return res.status(401).json({
       success: false,
-      message: "Auth middleware error",
+      message: error.message || "Auth middleware error",
     });
   }
 };

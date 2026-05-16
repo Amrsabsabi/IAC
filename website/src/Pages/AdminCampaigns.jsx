@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useClerk } from "@clerk/clerk-react";
 import api from "../services/api";
+import { useAppAuth } from "../context/AuthContext";
 
 export default function AdminCampaigns() {
   const navigate = useNavigate();
+  const { signOut } = useClerk();
+  const { getToken } = useAppAuth();
+
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,22 +23,40 @@ export default function AdminCampaigns() {
       setLoading(false);
     }
   };
+const deleteCampaign = async (slug) => {
+  const ok = confirm("Are you sure you want to delete this campaign?");
+  if (!ok) return;
 
-  const deleteCampaign = async (slug) => {
-    const ok = confirm("Are you sure you want to delete this campaign?");
-    if (!ok) return;
+  try {
+    const token = await getToken();
 
-    try {
-      await api.delete(`/admin/campaigns/${slug}`);
-      setCampaigns((prev) => prev.filter((item) => item.slug !== slug));
-    } catch (error) {
-      alert(error.response?.data?.message || "Delete failed");
+    if (!token) {
+      alert("No Clerk token found. Please logout and login again.");
+      return;
     }
-  };
 
-  const logout = () => {
-    localStorage.removeItem("admin_token");
-    localStorage.removeItem("admin_user");
+    console.log("Deleting campaign:", slug);
+    console.log("Token exists:", !!token);
+
+    await api.delete(`/admin/campaigns/${slug}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    setCampaigns((prev) => prev.filter((item) => item.slug !== slug));
+  } catch (error) {
+    console.log("DELETE ERROR:", {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
+
+    alert(error.response?.data?.message || "Delete failed");
+  }
+};
+  const logout = async () => {
+    await signOut();
     navigate("/admin/login");
   };
 

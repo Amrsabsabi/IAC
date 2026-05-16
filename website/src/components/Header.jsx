@@ -1,14 +1,17 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { useClerk } from "@clerk/clerk-react";
+import { useAppAuth } from "../context/AuthContext";
 
 export default function Header() {
   const navigate = useNavigate();
+  const { signOut } = useClerk();
+  const { profile, isSignedIn, isAdmin, loading } = useAppAuth();
 
   const [open, setOpen] = useState(false);
   const [showHeader, setShowHeader] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [profile, setProfile] = useState(null);
 
   const { t, i18n } = useTranslation();
 
@@ -20,52 +23,18 @@ export default function Header() {
     { to: "/contact-us", label: t("nav.contact") },
   ];
 
-  const dashboardPath =
-    profile?.role === "admin" ? "/admin/campaigns" : "/user/dashboard";
+  const dashboardPath = isAdmin ? "/admin/dashboard" : "/donor";
+  const displayName = profile?.name || profile?.email || "Dashboard";
 
-  const loadUser = () => {
-    const savedProfile = localStorage.getItem("user_profile");
-    const savedAdminProfile = localStorage.getItem("admin_profile");
-
-    if (savedProfile) {
-      setProfile(JSON.parse(savedProfile));
-      return;
-    }
-
-    if (savedAdminProfile) {
-      setProfile(JSON.parse(savedAdminProfile));
-      return;
-    }
-
-    setProfile(null);
-  };
-
-  const logout = () => {
-    localStorage.removeItem("user_token");
-    localStorage.removeItem("user_data");
-    localStorage.removeItem("user_profile");
-
-    localStorage.removeItem("admin_token");
-    localStorage.removeItem("admin_user");
-    localStorage.removeItem("admin_profile");
-
-    setProfile(null);
+  const logout = async () => {
+    await signOut();
     setOpen(false);
-
-    navigate("/login");
+    navigate("/");
   };
 
   const toggleLanguage = () => {
     i18n.changeLanguage(i18n.language === "ar" ? "en" : "ar");
   };
-
-  useEffect(() => {
-    loadUser();
-
-    window.addEventListener("storage", loadUser);
-
-    return () => window.removeEventListener("storage", loadUser);
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -127,13 +96,13 @@ export default function Header() {
             {t("nav.language")}
           </button>
 
-          {profile ? (
+          {!loading && isSignedIn ? (
             <>
               <NavLink
                 to={dashboardPath}
                 className="hidden rounded-md border border-[#D6B390] px-4 py-2 text-sm font-semibold text-[#D6B390] hover:bg-[#D6B390] hover:text-[#155541] md:block"
               >
-                {profile.name || "Dashboard"}
+                {displayName}
               </NavLink>
 
               <button
@@ -144,12 +113,14 @@ export default function Header() {
               </button>
             </>
           ) : (
-            <NavLink
-              to="/login"
-              className="hidden rounded-md border border-white/30 px-4 py-2 text-sm font-semibold hover:border-[#D6B390] hover:text-[#D6B390] md:block"
-            >
-              Login
-            </NavLink>
+            !loading && (
+              <NavLink
+                to="/login"
+                className="hidden rounded-md border border-white/30 px-4 py-2 text-sm font-semibold hover:border-[#D6B390] hover:text-[#D6B390] md:block"
+              >
+                Login
+              </NavLink>
+            )
           )}
 
           <a
@@ -185,14 +156,14 @@ export default function Header() {
           ))}
 
           <div className="mt-4 space-y-3">
-            {profile ? (
+            {!loading && isSignedIn ? (
               <>
                 <NavLink
                   to={dashboardPath}
                   onClick={() => setOpen(false)}
                   className="block rounded-md border border-[#D6B390] px-4 py-3 text-center font-bold text-[#D6B390]"
                 >
-                  {profile.name || "Dashboard"}
+                  {displayName}
                 </NavLink>
 
                 <button
@@ -203,13 +174,15 @@ export default function Header() {
                 </button>
               </>
             ) : (
-              <NavLink
-                to="/login"
-                onClick={() => setOpen(false)}
-                className="block rounded-md border border-white/30 px-4 py-3 text-center font-bold"
-              >
-                Login
-              </NavLink>
+              !loading && (
+                <NavLink
+                  to="/login"
+                  onClick={() => setOpen(false)}
+                  className="block rounded-md border border-white/30 px-4 py-3 text-center font-bold"
+                >
+                  Login
+                </NavLink>
+              )
             )}
           </div>
         </div>

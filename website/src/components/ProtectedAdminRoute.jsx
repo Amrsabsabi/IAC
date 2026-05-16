@@ -1,19 +1,25 @@
 import { Navigate } from "react-router-dom";
+import { useAppAuth } from "../context/AuthContext";
 
 export default function ProtectedAdminRoute({ children }) {
-  const token = localStorage.getItem("admin_token");
-  const profile = JSON.parse(localStorage.getItem("admin_profile") || "null");
+  const { loading, isSignedIn, isAdmin } = useAppAuth();
 
-  if (!token) {
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-lg font-semibold text-[#155541]">
+          Loading...
+        </p>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
     return <Navigate to="/admin/login" replace />;
   }
 
-  if (profile?.role !== "admin") {
-    localStorage.removeItem("admin_token");
-    localStorage.removeItem("admin_user");
-    localStorage.removeItem("admin_profile");
-
-    return <Navigate to="/admin/login" replace />;
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
   }
 
   return children;
